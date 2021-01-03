@@ -1,5 +1,7 @@
 # LinkedIn-Scraper
 
+## About
+
 A Python script that uses BeautifulSoup and Selenium to scrape information from LinkedIn members' profiles.
 
 **NOTE:** The script requires Google Chrome and valid LinkedIn credentials in order to run. Currently, it is legal to scrape publicly available data from LinkedIn. However, it is advised that you create a fake ‘dummy’ account to use for scraping, as there is a risk that scraping will cause the account to be banned/blocked.
@@ -19,8 +21,8 @@ Make sure to use forward slashes, e.g., `this/is/my/path/`.
 
 **NOTE:** The script expects an Excel (.xlsx) file for the input. Input should be formatted as follows:
 
-| Name     | URL                                   |
-| -------- | ------------------------------------- |
+| Name     | URL                               |
+| -------- | --------------------------------- |
 | John Doe | https://www.linkedin.com/in/. . . |
 | Jane Doe | https://www.linkedin.com/in/. . . |
 
