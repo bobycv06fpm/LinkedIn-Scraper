@@ -21,8 +21,8 @@ Make sure to use forward slashes, e.g., `this/is/my/path/`.
 
 | Name     | URL                                   |
 | -------- | ------------------------------------- |
-| John Doe | https[]()://www.linkedin.com/in/. . . |
-| Jane Doe | https[]()://www.linkedin.com/in/. . . |
+| John Doe | https://www.linkedin.com/in/. . . |
+| Jane Doe | https://www.linkedin.com/in/. . . |
 
 ### 3. Insert sheet name:
 
