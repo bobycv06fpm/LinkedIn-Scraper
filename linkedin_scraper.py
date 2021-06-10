@@ -53,7 +53,7 @@ SHEET_NAME = r"INSERT HERE"
 # =======================================#
 # INSERT PATH TO OUTPUT DIRECTORY BELOW  # (By default, output will be saved to wherever this code is saved)
 # =======================================# (Use FORWARD slashes, e.g., "this/is/my/path/")
-OUTPUT_FOLDER = r"INSWERT HERE"
+OUTPUT_FOLDER = r"INSERT HERE"
 
 # 4. Insert LinkedIn account credentials inside the quotation marks below (DELETE INFORMATION BEFORE SHARING THIS CODE!)
 
@@ -65,7 +65,7 @@ OUTPUT_FOLDER = r"INSWERT HERE"
 # the scraper should still be able to proceed normally.
 
 account_credentials = [
-    [r"USERNAME", r"PASSWORD"]
+    [r"EMAIL", r"PASSWORD"]
     # Add more credentials to this list, if desired; the scraper will open a separate thread for each set of credentials
 ]
 NUM_THREADS = len(account_credentials)
@@ -207,7 +207,7 @@ def handle_output_files():
 
 
 def write_to_files_helper_1(file_path, df):
-    with open(file_path, "a", newline="") as output_file:
+    with open(file_path, "a+", newline="") as output_file:
         writer = csv.writer(output_file, quoting=csv.QUOTE_ALL)
         for row in df.values.tolist():
             writer.writerow(row)
@@ -225,7 +225,7 @@ def write_to_files_helper_2(file_path, name, new_data):
         )
         for row in reader:
             entries.append(row)
-    with open(file_path, "w", newline="") as file:
+    with open(file_path, "a+", newline="") as file:
         if isinstance(new_data, list):
             for new_row in new_data:
                 line_to_overwrite = {str(name): new_row}
@@ -331,8 +331,7 @@ def write_to_files(overview_entry, experience_entry, education_entry, name, atte
 
 def update_progress(status, scraper_progress, url):
     progress_semaphore.acquire()
-    url_row = (scraper_progress.index[scraper_progress["URL"] == url].tolist())[0]
-    scraper_progress.at[url_row, "Scraped?"] = status
+    scraper_progress.loc[scraper_progress["URL"] == url, "Scraped?"] = status
     progress_semaphore.release()
 
 
@@ -342,7 +341,7 @@ def update_progress_file(scraper_progress):
     progress_file_semaphore.acquire()
     while tries < MAX_TRIES:
         try:
-            scraper_progress.to_csv(scraper_progress_output_path_string, index=False)
+            scraper_progress.to_csv(scraper_progress_output_path_string)
             break
         except Exception as e:
             print_error(e, "Error logging progress")
@@ -434,9 +433,10 @@ def get_section_items(driver, section, entity, expand, name, entry):
                 try:
                     see_more_jobs = section_driver.find_element_by_css_selector(expand)
                     driver.execute_script("arguments[0].scrollIntoView();", items[-3])
-                    see_more_jobs.click()
-                    time.sleep(1.5)
-                    break
+                    if see_more_jobs.get_attribute('aria-expanded') == 'false':
+                        see_more_jobs.click()
+                        time.sleep(1.5)
+                        break
                 # Must include stale element exception handler because in some cases,
                 # if the profile has 20+ roles, clicking see more would reload the section
                 # and cause our reference to become stale
@@ -521,6 +521,7 @@ def parse_entries(driver, urls, names, scraper_progress):
             .values[0]
             .strip()
         )
+
         if scrape_status == "Yes" or scrape_status == "Attempting":
             progress_semaphore.release()
             continue
@@ -1100,8 +1101,7 @@ def parse_entries(driver, urls, names, scraper_progress):
 
         # Update progress
         update_progress("Yes", scraper_progress, url)
-
-    update_progress_file(scraper_progress)
+        update_progress_file(scraper_progress)
 
 
 def log_in(driver, credentials):
@@ -1152,9 +1152,9 @@ def log_in(driver, credentials):
 
 def entry_thread(urls, names, scraper_progress, credentials):
 
-    options = Options()
-    options.add_argument("--headless")
-    options.add_argument("--disable-gpu")
+    # options = Options()
+    # options.add_argument("--headless")
+    # options.add_argument("--disable-gpu")
 
     driver = webdriver.Chrome(ChromeDriverManager().install())
 
@@ -1174,7 +1174,7 @@ def entry_thread(urls, names, scraper_progress, credentials):
         driver.quit()
     except Exception as e:
         logging.info(e, exc_info=True)
-        update_progress_file(scraper_progress)
+        # update_progress_file(scraper_progress)
         driver.quit()
 
 
@@ -1216,7 +1216,7 @@ if __name__ == "__main__":
 
     # We make a dataframe to store progress so that if something bad happens, we don't need to start over
     try:
-        scraper_progress = pd.read_csv(output_folder / "scraper_progress.csv")
+        scraper_progress = pd.read_csv(scraper_progress_output_path_string)
     except:
         scraper_progress = pd.DataFrame({"Name": names, "URL": urls})
         scraper_progress["Scraped?"] = "No"
