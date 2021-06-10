@@ -38,7 +38,7 @@ from webdriver_manager.chrome import ChromeDriverManager
 # =================================#
 # INSERT PATH TO INPUT FILE BELOW  # (Code expects an Excel (.xlsx) file)
 # =================================# (Use FORWARD slashes, e.g., "this/is/my/path/")
-INPUT_FILE = r"INSERT_FILE_PATH_HERE"
+INPUT_FILE = r"INSERT HERE"
 
 # 2. Insert sheet name below (inside the quotation marks "")
 
@@ -46,14 +46,14 @@ INPUT_FILE = r"INSERT_FILE_PATH_HERE"
 # INSERT NAME OF SHEET BELOW #
 # ===========================#
 
-SHEET_NAME = r"INSERT_SHEET_NAME_HERE"
+SHEET_NAME = r"INSERT HERE"
 
 # 3. Insert path to output folder below (inside the quotation marks "")
 
 # =======================================#
 # INSERT PATH TO OUTPUT DIRECTORY BELOW  # (By default, output will be saved to wherever this code is saved)
 # =======================================# (Use FORWARD slashes, e.g., "this/is/my/path/")
-OUTPUT_FOLDER = r"INSERT_FOLDER_PATH_HERE"
+OUTPUT_FOLDER = r"INSWERT HERE"
 
 # 4. Insert LinkedIn account credentials inside the quotation marks below (DELETE INFORMATION BEFORE SHARING THIS CODE!)
 
@@ -65,7 +65,7 @@ OUTPUT_FOLDER = r"INSERT_FOLDER_PATH_HERE"
 # the scraper should still be able to proceed normally.
 
 account_credentials = [
-    [r"INSERT_EMAIL_HERE", r"INSERT_PASSWORD_HERE"]
+    [r"USERNAME", r"PASSWORD"]
     # Add more credentials to this list, if desired; the scraper will open a separate thread for each set of credentials
 ]
 NUM_THREADS = len(account_credentials)
@@ -77,8 +77,8 @@ input_file_path_string = str(Path(INPUT_FILE).resolve())
 overview_output_path_string = str((output_folder / "Overview.csv").resolve())
 experience_output_path_string = str((output_folder / "Experience.csv").resolve())
 education_output_path_string = str((output_folder / "Education.csv").resolve())
-scraper_csv_output_path_string = str((output_folder / "Scraper_Progress.csv").resolve())
-scraper_pkl_output_path_string = str((output_folder / "Scraper_Progress.pkl").resolve())
+scraper_progress_output_path_string = str(Path("Scraper_Progress.csv").resolve())
+# scraper_pkl_output_path_string = str((output_folder / "Scraper_Progress.pkl").resolve())
 
 overview_output_columns = [
     "URL",
@@ -342,9 +342,7 @@ def update_progress_file(scraper_progress):
     progress_file_semaphore.acquire()
     while tries < MAX_TRIES:
         try:
-            # os.remove(scraper_csv_output_path_string)
-            scraper_progress.to_csv(scraper_csv_output_path_string, index=False)
-            scraper_progress.to_pickle(scraper_pkl_output_path_string)
+            scraper_progress.to_csv(scraper_progress_output_path_string, index=False)
             break
         except Exception as e:
             print_error(e, "Error logging progress")
@@ -438,6 +436,7 @@ def get_section_items(driver, section, entity, expand, name, entry):
                     driver.execute_script("arguments[0].scrollIntoView();", items[-3])
                     see_more_jobs.click()
                     time.sleep(1.5)
+                    break
                 # Must include stale element exception handler because in some cases,
                 # if the profile has 20+ roles, clicking see more would reload the section
                 # and cause our reference to become stale
@@ -599,38 +598,32 @@ def parse_entries(driver, urls, names, scraper_progress):
         overview_entry["about"] = profile_data_dict.get("summary")
 
         try:
-            basic_info = driver.find_element_by_css_selector(
-                ".profile-background-image + div"
-            )
-            try:
-                location = basic_info.find_element_by_css_selector(
-                    ".pv-top-card--list-bullet > li:nth-child(1)"
-                ).text
-                overview_entry["location"] = location
-            except Exception as e:
-                logging.info("Error getting location")
-                overview_entry["scraping_notes"] = (
-                    overview_entry["scraping_notes"] + "Error getting location" + "\n"
-                )
-            try:
-                image = basic_info.find_element_by_css_selector(
-                    'img[title="' + overview_entry["name"] + '"]'
-                )
-                if "ghost-person" in image.get_attribute("class"):
-                    overview_entry["photo"] = str(None)
-                else:
-                    overview_entry["photo"] = image.get_attribute("src")
-            except Exception as e:
-                logging.info("Error getting photo")
-                overview_entry["scraping_notes"] = (
-                    overview_entry["scraping_notes"] + "Error getting photo" + "\n"
-                )
+            '''
+            location = basic_info.find_element_by_css_selector(
+                ".pv-top-card--list-bullet > li:nth-child(1)"
+            ).text
+            '''
+            location = driver.find_element_by_css_selector(
+                "div.pb2 > span.text-body-small.inline.t-black--light.break-words"
+            ).text
+            overview_entry["location"] = location
         except Exception as e:
-            logging.info("Error getting basic info section")
+            logging.info("Error getting location")
             overview_entry["scraping_notes"] = (
-                overview_entry["scraping_notes"]
-                + "Error getting basic info section"
-                + "\n"
+                overview_entry["scraping_notes"] + "Error getting location" + "\n"
+            )
+        try:
+            image = driver.find_element_by_css_selector(
+                'img[alt="' + overview_entry["name"] + '"]'
+            )
+            if "ghost-person" in image.get_attribute("class"):
+                overview_entry["photo"] = str(None)
+            else:
+                overview_entry["photo"] = image.get_attribute("src")
+        except Exception as e:
+            logging.info("Error getting photo")
+            overview_entry["scraping_notes"] = (
+                overview_entry["scraping_notes"] + "Error getting photo" + "\n"
             )
 
         # --------------------------------- #
@@ -1223,13 +1216,11 @@ if __name__ == "__main__":
 
     # We make a dataframe to store progress so that if something bad happens, we don't need to start over
     try:
-        # scraper_progress = pd.read_pickle(output_folder / "scraper_progress.pkl")
         scraper_progress = pd.read_csv(output_folder / "scraper_progress.csv")
     except:
         scraper_progress = pd.DataFrame({"Name": names, "URL": urls})
         scraper_progress["Scraped?"] = "No"
-        scraper_progress.to_csv(scraper_csv_output_path_string)
-        scraper_progress.to_pickle(output_folder / "scraper_progress.pkl")
+        scraper_progress.to_csv(scraper_progress_output_path_string)
 
     logging.basicConfig(
         level=logging.INFO, format="%(relativeCreated)6d %(threadName)10s %(message)s"
